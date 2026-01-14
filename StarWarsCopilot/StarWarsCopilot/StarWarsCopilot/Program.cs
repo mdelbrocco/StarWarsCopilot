@@ -7,15 +7,24 @@ using Microsoft.Extensions.Logging;
 
 using StarWarsCopilot;
 
+using Azure;
+using Azure.AI.Inference;
+
+using ChatRole = Microsoft.Extensions.AI.ChatRole;
+
 // Create a logger factory
 var factory = LoggerFactory.Create(builder => builder.AddConsole()
                                                      .SetMinimumLevel(LogLevel.Trace));
 
 // Create the IChatClient
-var client = new AzureOpenAIClient(new Uri(LLMOptions.Endpoint),
-                                   new ApiKeyCredential(LLMOptions.ApiKey));
+// var client = new AzureOpenAIClient(new Uri(LLMOptions.Endpoint),
+//                                    new ApiKeyCredential(LLMOptions.ApiKey));
 
-var innerClient = client.GetChatClient(LLMOptions.Model).AsIChatClient();
+// var innerClient = client.GetChatClient(LLMOptions.Model).AsIChatClient();
+
+var innerClient = new ChatCompletionsClient(new Uri(LLMOptions.AIInferenceEndpoint),
+                                            new AzureKeyCredential(LLMOptions.ApiKey))
+                                            .AsIChatClient(LLMOptions.AIInferenceModel);
 
 var chatClient = new ChatClientBuilder(innerClient)
                     .UseLogging(factory)

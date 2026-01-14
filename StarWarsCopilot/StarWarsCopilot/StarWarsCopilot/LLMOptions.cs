@@ -8,6 +8,9 @@ public static class LLMOptions
   private static readonly string? _apiKey;
   private static readonly string? _model;
 
+  private static readonly string? _aiInferenceEndpoint;
+  private static readonly string? _aiInferenceModel;
+
   static LLMOptions()
   {
     var config = new ConfigurationBuilder().AddUserSecrets<Program>().Build();
@@ -25,10 +28,21 @@ public static class LLMOptions
     {
       throw new InvalidOperationException("OpenAI:ModelName is not configured in User Secrets.");
     }
+    if (!secretProvider.TryGet("AIInference:Endpoint", out _aiInferenceEndpoint))
+    {
+      throw new InvalidOperationException("AIInference:Endpoint is not configured in User Secrets.");
+    }
+    if (!secretProvider.TryGet("AIInference:ModelName", out _aiInferenceModel))
+    {
+      throw new InvalidOperationException("AIInference:ModelName is not configured in User Secrets.");
+    }
   }
 
   public static string Endpoint => _endpoint!;
   public static string ApiKey => _apiKey!;
   public static string Model => _model!;
+
+  public static string AIInferenceEndpoint => _aiInferenceEndpoint!;
+  public static string AIInferenceModel => _aiInferenceModel!;
 
 }
