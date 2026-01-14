@@ -1,14 +1,11 @@
-﻿using System.ClientModel;
-
+﻿using StarWarsCopilot;
+using System.ClientModel;
 using Azure.AI.OpenAI;
-
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
-
-using StarWarsCopilot;
-
 using Azure;
 using Azure.AI.Inference;
+using ModelContextProtocol.Client;
 
 using ChatRole = Microsoft.Extensions.AI.ChatRole;
 
@@ -31,8 +28,18 @@ var chatClient = new ChatClientBuilder(innerClient)
                     .UseFunctionInvocation() // enables tool calling
                     .Build();
 
-IList<AITool> tools = [new WookiepediaTool(ToolsOptions.TavilyApiKey)];
-ChatOptions options = new() { Tools = tools };
+var clientTransport = new StdioClientTransport(new()
+{
+    Name = MCPServerOptions.Name,
+    Command = MCPServerOptions.Command,
+    Arguments = MCPServerOptions.Arguments,
+}, loggerFactory: factory);
+
+await using var mcpClient = await McpClient.CreateAsync(clientTransport,
+                                                        loggerFactory: factory);
+
+IList<AITool> tools = [..await mcpClient.ListToolsAsync()];
+ChatOptions options = new() { Tools = [..tools] };
 
 // Create a history store the conversation
 //var succintStylePrompt = @"
