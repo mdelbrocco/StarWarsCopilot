@@ -17,18 +17,22 @@ var factory = LoggerFactory.Create(builder => builder.AddConsole()
                                                      .SetMinimumLevel(LogLevel.Trace));
 
 // Create the IChatClient
-// var client = new AzureOpenAIClient(new Uri(LLMOptions.Endpoint),
-//                                    new ApiKeyCredential(LLMOptions.ApiKey));
+var client = new AzureOpenAIClient(new Uri(LLMOptions.Endpoint),
+                                   new ApiKeyCredential(LLMOptions.ApiKey));
 
-// var innerClient = client.GetChatClient(LLMOptions.Model).AsIChatClient();
+var innerClient = client.GetChatClient(LLMOptions.Model).AsIChatClient();
 
-var innerClient = new ChatCompletionsClient(new Uri(LLMOptions.AIInferenceEndpoint),
-                                            new AzureKeyCredential(LLMOptions.ApiKey))
-                                            .AsIChatClient(LLMOptions.AIInferenceModel);
+// var innerClient = new ChatCompletionsClient(new Uri(LLMOptions.AIInferenceEndpoint),
+//                                             new AzureKeyCredential(LLMOptions.ApiKey))
+//                                             .AsIChatClient(LLMOptions.AIInferenceModel);
 
 var chatClient = new ChatClientBuilder(innerClient)
                     .UseLogging(factory)
+                    .UseFunctionInvocation() // enables tool calling
                     .Build();
+
+IList<AITool> tools = [new WookiepediaTool(ToolsOptions.TavilyApiKey)];
+ChatOptions options = new() { Tools = tools };
 
 // Create a history store the conversation
 //var succintStylePrompt = @"
@@ -39,7 +43,8 @@ var yodaStylePrompt = @"
 You are a helpful assistant that provides information about Star Wars.
 Always respond in the style of Yoda, the wise Jedi Master.
 Give warnings about paths to the dark side.
-If the user says hello there, then only respond with General Kenobi! and nothing else.";
+If the user says hello there, then only respond with General Kenobi! and nothing else.
+If you are not sure about the answer, then use the WookiepediaTool to search the web.";
 
 //var tedLassoStylePrompt = @"You are a helpful assistant that provides guidance and information.
 //Always respond in the style of Ted Lasso, the football coach for AFC Richmond.
@@ -66,7 +71,7 @@ while (true)
   history.Add(new ChatMessage(ChatRole.User, userInput));
 
   // Get the response from the AI
-  var result = await chatClient.GetResponseAsync(history);
+  var result = await chatClient.GetResponseAsync(history, options);
 
   // Add the AI response to the chat history
   history.Add(new ChatMessage(ChatRole.Assistant, result.Messages.Last()?.Text ?? string.Empty));
